@@ -1,0 +1,106 @@
+---
+title: "gptstudio"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{gptstudio}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(ChatGPTtestR)
+```
+
+
+This vignette covers how to setup the [`gptstudio`](https://michelnivard.github.io/gptstudio/) package by [Michel Nivard](https://github.com/MichelNivard).
+
+# Install
+
+Install the `gptstudio` package, by running the code below: 
+
+```{r gptstudio-install, eval=FALSE}
+# install.packages("pak")
+pak::pak("MichelNivard/gptstudio")
+```
+
+
+# API key
+
+To use both `gpttools` and `gptstudio`, you must generate an API key from [openai](https://platform.openai.com/account/api-keys)
+
+## Generate a new API key from openai
+
+<!-- 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 -->
+
+<!-- Sys.setenv(OPENAI_API_KEY = "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") -->
+
+I set my API key up on the free plan, which gives you a credit of $18. 
+
+<br>
+
+```{r openai-api-keys, fig.align='center', echo=FALSE, out.width='80%'}
+knitr::include_graphics("../man/figures/openai-api-keys.png")
+```
+
+<br>
+
+## Add API key to .Renviron
+
+I've added the key to my `.Renviron`
+
+```{r edit_r_environ, eval=FALSE}
+require(usethis)
+Loading required package: usethis
+edit_r_environ(scope = "project")
+✔ Setting active project to '/Users/mjfrigaard/projects/methods/ChatGPTtestR'
+• Modify '.Renviron'
+• Restart R for changes to take effect
+```
+
+# Comment Code
+
+I'll start with a simple function for creating a `ggplot2` graph.
+
+```{r}
+graph_points <- function(df, xvar, yvar, colvar, ..., title, xlbl, ylbl, clbl) {
+  base_layer <- ggplot2::ggplot(
+    data = df,
+    ggplot2::aes(x = {{ xvar }}, y = {{ yvar }})
+  ) +
+    ggplot2::geom_point(
+      ggplot2::aes(color = {{ colvar }}),
+      ...
+    ) 
+  base_layer + 
+    ggplot2::labs(title = title, x = xlbl, y = ylbl, color = clbl)
+}
+```
+
+
+```{r}
+# create a function that takes in a dataframe, x variable, y variable, color variable, title, x label, y label, and color label
+graph_points <- function(df, xvar, yvar, colvar, ..., title, xlbl, ylbl, clbl) {
+  # create a base layer that takes in the dataframe and the x and y variables
+  base_layer <- ggplot2::ggplot(
+    data = df,
+    ggplot2::aes(x = {{ xvar }}, y = {{ yvar }})
+  ) +
+    # add a layer that takes in the color variable
+    ggplot2::geom_point(
+      ggplot2::aes(color = {{ colvar }}),
+      ...
+    ) 
+  # add a layer that takes in the title, x label, y label, and color label
+  base_layer + 
+    ggplot2::labs(title = title, x = xlbl, y = ylbl, color = clbl)
+}
+
+```
+

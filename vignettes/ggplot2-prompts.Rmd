@@ -1,0 +1,248 @@
+---
+title: "Testing ChatGPT ggplot2 code"
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 4
+vignette: >
+  %\VignetteIndexEntry{Testing ChatGPT ggplot2 code}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "##", 
+  eval = TRUE, 
+  error = TRUE,
+  out.width = "50%"
+)
+options(width = 40)
+library(ggplot2)
+library(tibble)
+library(dplyr)
+library(glue)
+```
+
+```{css, echo=FALSE}
+div.main-container {
+  max-width: 100% !important;
+  margin: auto;
+}
+pre {
+  overflow-x: auto;
+  max-width: 75% !important;
+}
+pre code {
+  word-wrap: normal !important;
+  max-width: 75% !important;
+  white-space: pre-wrap !important;
+}
+```
+
+```{r}
+library(ChatGPTtestR)
+```
+
+## Prompt: write code for writing a custom plotting function using `ggplot2`
+
+### Response
+
+> Sure! Here's an example of how to write a custom plotting function using `ggplot2`:
+
+```{r my_plot-01, eval=FALSE}
+library(datasets)
+library(ggplot2)
+
+# Define custom function
+my_plot <- function(data, x_var, y_var) {
+  # Create ggplot object
+  plot_obj <- ggplot(data, aes(x = {{x_var}}, y = {{y_var}})) +
+    geom_point() +
+    labs(x = x_var, y = y_var, title = "My Custom Plot")
+  
+  # Return plot object
+  return(plot_obj)
+}
+
+# Example usage with built-in dataset
+my_data <- mtcars
+my_plot(my_data, mpg, wt)
+```
+
+> In this example, the `my_plot()` function takes three arguments: `data` (the data.frame to plot), `x_var` (the name of the x variable), and `y_var` (the name of the y variable).
+>
+> The function first creates a `ggplot` object with the specified x and y variables and adds a point geometry. It also adds labels to the x-axis, y-axis, and plot title.
+>
+> Finally, the function returns the `ggplot` object, which can be further customized or saved using the standard `ggplot2` syntax.
+>
+> In this example, we demonstrate the usage of the function by passing in the mtcars dataset and specifying the `mpg` and `wt` variables as the `x` and `y` variables, respectively.
+
+### Test
+
+```{r my_plot-test, eval=TRUE, error=TRUE}
+library(datasets)
+library(ggplot2)
+
+# Define custom function
+my_plot <- function(data, x_var, y_var) {
+  # Create ggplot object
+  plot_obj <- ggplot(data, aes(x = {{x_var}}, y = {{y_var}})) +
+    geom_point() +
+    labs(x = x_var, y = y_var, title = "My Custom Plot")
+  
+  # Return plot object
+  return(plot_obj)
+}
+
+# Example usage with built-in dataset
+my_data <- mtcars
+my_plot(my_data, mpg, wt)
+```
+
+## Fix 
+
+The correct implementation of this function requires knowledge of tidy-evaluation (for the variables passed to `ggplot2::aes()`). ChatGPT correctly defined the variables to `ggplot2::aes()`, but fell short of in it's implementation of the labels (with `ggplot2::labs()`). 
+
+```{r plot_layer}
+library(ggplot2)
+plot_layer <- function(df, x_var, y_var, color_var, point_alpha) {
+  # Create plot layer
+    ggplot(data = df,
+      mapping = ggplot2::aes(
+        x = {{ x_var }}, 
+        y = {{ y_var }}
+        )
+      ) +
+      ggplot2::geom_point(
+        ggplot2::aes(color = {{ color_var }}),
+        alpha = point_alpha)
+}
+# Example usage with built-in dataset
+ggp2_point_layer <- plot_layer(df = mpg, 
+  x_var = displ, y_var = hwy, color_var = class,
+  point_alpha = 0.33)
+ggp2_point_layer
+```
+
+
+Now that we have the point layer working, we can write another function to create the labels layer:
+
+
+```{r}
+labs_layer <- function(points, xlab, ylab) {
+  
+  x_up <- toupper(deparse(substitute(xlab)))
+  y_up <- toupper(deparse(substitute(ylab)))
+  
+  points + 
+  ggplot2::labs(title = "My Better Custom Plot", 
+    x = x_up, y = y_up)
+}
+labs_layer(points = ggp2_point_layer, 
+  xlab = displ, ylab = hwy)
+```
+
+I can combine these into a single function, 
+
+```{r}
+point_plot <- function(data, xvar, yvar, hue, opac) {
+  
+  plot_layer <- function(df, x_var, y_var, color_var, point_alpha) {
+  # Create plot layer
+    ggplot(data = df,
+      mapping = ggplot2::aes(
+        x = {{ x_var }}, 
+        y = {{ y_var }}
+        )
+      ) +
+      ggplot2::geom_point(
+        ggplot2::aes(color = {{ color_var }}),
+        alpha = point_alpha)
+  }
+  
+  ggp2_points <- plot_layer(df = data, 
+                      x_var = xvar, y_var = yvar, 
+                      color_var = hue, point_alpha = opac)
+  # return(ggp2_points)
+  
+  labs_layer <- function(points, xlab, ylab) {
+
+    x_up <- toupper(deparse(substitute(xlab)))
+    y_up <- toupper(deparse(substitute(ylab)))
+
+    points +
+    ggplot2::labs(title = "My Better Custom Plot",
+      x = x_up, y = y_up)
+  }
+
+  labs_layer(points = ggp2_points,
+        xlab = xvar, ylab = yvar)
+}
+```
+
+```{r}
+point_plot(data = ggplot2::mpg,
+  xvar = displ, yvar = hwy, 
+  hue = class, opac = 0.33)
+```
+
+
+
+
+## Prompt: write code for a custom plotting function using `ggplot2` that includes a `geom_point()` and a `geom_line()`
+
+### Response
+
+> Sure! Here's an example of a custom plotting function using `ggplot2` that includes both `geom_point()` and `geom_line()`:
+
+```{r , eval=FALSE}
+library(ggplot2)
+
+# Define custom function
+my_plot <- function(data, x_var, y_var) {
+  # Create ggplot object with both point and line geometries
+  plot_obj <- ggplot(data, aes(x = {{x_var}}, y = {{y_var}})) +
+    geom_point() +
+    geom_line() +
+    labs(x = x_var, y = y_var, title = "My Custom Plot")
+  
+  # Return plot object
+  return(plot_obj)
+}
+
+# Example usage with built-in dataset
+my_data <- mtcars
+my_plot(my_data, mpg, wt)
+```
+
+> In this example, the `my_plot()` function takes three arguments: `data` (the data.frame to plot), `x_var` (the name of the x variable), and `y_var` (the name of the y variable).
+>
+> The function creates a `ggplot` object with both `geom_point()` and `geom_line()` geometries, adding labels to the x-axis, y-axis, and plot title.
+>
+> Finally, the function returns the `ggplot` object, which can be further customized or saved using the standard `ggplot2` syntax.
+>
+> In this example, we demonstrate the usage of the function by passing in the `mtcars` dataset and specifying the `mpg` and `wt` variables as the `x` and `y` variables, respectively. The resulting plot includes both point and line geometries, showing how the data points connect to each other.
+
+### Test
+
+```{r , eval=TRUE}
+library(ggplot2)
+
+# Define custom function
+my_plot <- function(data, x_var, y_var) {
+  # Create ggplot object with both point and line geometries
+  plot_obj <- ggplot(data, aes(x = {{x_var}}, y = {{y_var}})) +
+    geom_point() +
+    geom_line() +
+    labs(x = x_var, y = y_var, title = "My Custom Plot")
+  
+  # Return plot object
+  return(plot_obj)
+}
+
+# Example usage with built-in dataset
+my_data <- mtcars
+my_plot(my_data, mpg, wt)
+```
